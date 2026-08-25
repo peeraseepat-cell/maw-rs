@@ -23,8 +23,8 @@ fn ls_plan_compact_default_shows_all_sessions_and_fleet_only_filters_shape() {
         concat!(
             "{\"command\":\"ls\",\"mode\":\"compact\",\"scope\":\"local\",\"json\":true,",
             "\"sessions\":[",
-            "{\"session\":\"50-mawjs\",\"status\":\"stale\",\"panes\":1,\"agents\":1},",
-            "{\"session\":\"maw-rs\",\"status\":\"stale\",\"panes\":1,\"agents\":1},",
+            "{\"session\":\"50-mawjs\",\"status\":\"idle\",\"panes\":1,\"agents\":1},",
+            "{\"session\":\"maw-rs\",\"status\":\"idle\",\"panes\":1,\"agents\":1},",
             "{\"session\":\"scratch\",\"status\":\"stale\",\"panes\":1,\"agents\":0}]}
 "
         )
@@ -46,8 +46,33 @@ fn ls_plan_compact_default_shows_all_sessions_and_fleet_only_filters_shape() {
         concat!(
             "{\"command\":\"ls\",\"mode\":\"compact\",\"scope\":\"local\",\"json\":true,",
             "\"fleetOnly\":true,",
-            "\"sessions\":[{\"session\":\"50-mawjs\",\"status\":\"stale\",\"panes\":1,\"agents\":1}]}
+            "\"sessions\":[{\"session\":\"50-mawjs\",\"status\":\"idle\",\"panes\":1,\"agents\":1}]}
 "
+        )
+    );
+}
+
+#[test]
+fn ls_quiet_agent_pane_stays_idle_and_only_agentless_pane_goes_stale() {
+    let output = run_cli(&args(&[
+        "ls",
+        "--plan-json",
+        "--now",
+        "1700000400",
+        "--pane",
+        "%1|claude|11-agent:1.0|agent|100|/repo|1700000000",
+        "--pane",
+        "%2|zsh|22-shell:1.0|shell|101|/tmp|1700000000",
+    ]));
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(
+        output.stdout,
+        concat!(
+            "{\"command\":\"ls\",\"mode\":\"compact\",\"scope\":\"local\",\"json\":true,",
+            "\"sessions\":[",
+            "{\"session\":\"11-agent\",\"status\":\"idle\",\"panes\":1,\"agents\":1},",
+            "{\"session\":\"22-shell\",\"status\":\"stale\",\"panes\":1,\"agents\":0}]}\n"
         )
     );
 }
