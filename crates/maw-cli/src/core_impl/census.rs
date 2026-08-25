@@ -132,7 +132,7 @@ mod census_tests {
             let target = row["target"].as_str().expect("target");
             let session = target.split_once(':').map_or(target, |(session, _)| session);
             let age_sec = row["ageSec"].as_u64();
-            LsPanePlan { id: row["id"].as_str().unwrap_or_default().to_owned(), target: target.to_owned(), session: session.to_owned(), command: row["command"].as_str().unwrap_or_default().to_owned(), title: String::new(), source: None, last_activity: None, session_created: None, status: ls_pane_status(age_sec), age_sec, agent: true }
+            LsPanePlan { id: row["id"].as_str().unwrap_or_default().to_owned(), target: target.to_owned(), session: session.to_owned(), command: row["command"].as_str().unwrap_or_default().to_owned(), title: String::new(), source: None, last_activity: None, session_created: None, status: ls_pane_status(age_sec, true), age_sec, agent: true }
         }).collect()
     }
 

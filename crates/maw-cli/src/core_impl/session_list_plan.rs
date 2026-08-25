@@ -308,6 +308,7 @@ fn project_ls_panes(options: &LsPlanOptions) -> Vec<LsPanePlan> {
             {
                 return None;
             }
+            let agent = is_ls_agent_command(&pane.command);
             Some(LsPanePlan {
                 id: pane.id.clone(),
                 target: pane.target.clone(),
@@ -317,9 +318,9 @@ fn project_ls_panes(options: &LsPlanOptions) -> Vec<LsPanePlan> {
                 source,
                 last_activity: pane.last_activity,
                 session_created: options.session_created.get(session).copied(),
-                status: ls_pane_status(age_sec),
+                status: ls_pane_status(age_sec, agent),
                 age_sec,
-                agent: is_ls_agent_command(&pane.command),
+                agent,
             })
         })
         .collect::<Vec<_>>();
@@ -366,10 +367,15 @@ fn is_ls_agent_command(command: &str) -> bool {
         || command.contains("node")
 }
 
-fn ls_pane_status(age_sec: Option<u64>) -> &'static str {
+/// `age_sec` is derived from tmux `#{window_activity}` — the last time output
+/// was drawn, not whether anything is alive. A pane whose command is still an
+/// agent process is therefore awake no matter how long it has been quiet: age
+/// only separates "typing" (`active`) from "sitting at the prompt" (`idle`).
+/// The red `stale` dot is reserved for panes with no agent process left.
+fn ls_pane_status(age_sec: Option<u64>, agent: bool) -> &'static str {
     match age_sec {
         Some(age) if age < 30 => "active",
-        Some(age) if age < 300 => "idle",
+        Some(age) if agent || age < 300 => "idle",
         Some(_) => "stale",
         None => "unknown",
     }
@@ -1372,6 +1378,15 @@ mod remaining_cli_private_coverage_tests {
             .expect("long row");
         assert_eq!(char_find(header, "TARGET"), char_find(short, "main.0"));
         assert_eq!(short.find("zsh"), long.find("bash"));
+    }
+
+    #[test]
+    fn private_ls_pane_status_keeps_quiet_agents_idle_and_reserves_stale_for_agentless() {
+        assert_eq!(ls_pane_status(Some(5), true), "active");
+        assert_eq!(ls_pane_status(Some(3900), true), "idle");
+        assert_eq!(ls_pane_status(Some(120), false), "idle");
+        assert_eq!(ls_pane_status(Some(3900), false), "stale");
+        assert_eq!(ls_pane_status(None, true), "unknown");
     }
 
     #[test]
